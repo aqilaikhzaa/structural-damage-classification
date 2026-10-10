@@ -1,0 +1,26 @@
+{
+  "best_params": {
+    "reg_lambda": 5.0,
+    "num_leaves": 63,
+    "min_child_samples": 100,
+    "colsample_bytree": 0.7,
+    "cat_smooth": 10
+  },
+  "cv_accuracy_tuning": 0.5647399997129509,
+  "best_n_trees_holdout": 600,
+  "final_n_trees": 660,
+  "holdout": {
+    "Decision Tree": {
+      "Accuracy": 0.5526,
+      "Macro-F1": 0.5089
+    },
+    "LightGBM (awal, 200 pohon)": {
+      "Accuracy": 0.5929,
+      "Macro-F1": 0.5539
+    },
+    "LightGBM tuned (600 pohon)": {
+      "Accuracy": 0.5975,
+      "Macro-F1": 0.5597
+    }
+  }
+}
