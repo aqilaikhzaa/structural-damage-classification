@@ -12,7 +12,7 @@ structural-damage-classification/
 ├── README.md
 ├── .gitignore
 ├── requirements.txt
-├── data/                      # CSV kompetisi (tidak di-commit, lihat cara unduh)
+├── data/                      # CSV kompetisi 
 ├── notebooks/
 │   ├── 01_eda.ipynb           # eksplorasi data
 │   ├── 02_modeling.ipynb      # splitting, pipeline, tuning, evaluasi, simpan model
@@ -21,8 +21,8 @@ structural-damage-classification/
 │   ├── __init__.py
 │   ├── feature_engineering.py # fitur turunan + daftar kolom
 │   ├── preprocess.py          # load data, ColumnTransformer
-│   ├── train.py               # pipeline, tuning, pemilihan n_estimators (bisa lewat CLI)
-│   └── predict.py             # membuat submission (bisa lewat CLI)
+│   ├── train.py               # pipeline, tuning, pemilihan n_estimators 
+│   └── predict.py             # membuat submission 
 ├── models/pipeline_lgbm_structural_damage.pkl
 ├── submissions/submission.csv
 └── reports/
