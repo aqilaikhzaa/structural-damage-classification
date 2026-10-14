@@ -85,18 +85,67 @@ Per kelas (model tuned):
 | Grade 4 | 0,53 | 0,52 | 0,53 |
 | Grade 5 | 0,72 | 0,77 | 0,74 |
 
-## Laporan Interpretasi
-**Data.** Tidak ada missing value maupun `building_id` ganda. Target tidak seimbang (Grade 5 ~36%, Grade 1 ~10%). `age_building` memiliki outlier hingga 999 sehingga di-clip pada 100. Kolom `superstructure` berupa satu kolom kategorik (11 nilai), berbeda dari flag boolean di `metadata.csv`.
+## Laporan Interpretasi Model
 
-**Lokasi adalah faktor paling dominan.** Proporsi Grade 5 sangat bervariasi antar district (sekitar 9% di district 31 hingga sekitar 81% di district 23). Pada feature importance (gain), `ward_id` menyumbang 37,3% dan `vdcmun_id` 21,6%, disusul `superstructure` 11,3%. Fitur ukuran (luas, tinggi, volume) dan umur masing-masing hanya 2-4%. Interpretasinya: kerusakan sangat bergantung pada kedekatan dengan pusat guncangan dan kondisi lokal, lalu pada material utama bangunan. Ini juga sebabnya lokasi harus diperlakukan sebagai kategori; sebagai angka urut, akurasi turun dari 0,58 menjadi 0,556 pada eksperimen subsampel, dan tanpa fitur lokasi hanya 0,459.
+### Analisis Data
 
-**Mengapa LightGBM.** Model harus menangkap interaksi antara ratusan ward dan jenis material. Decision Tree tunggal hanya mencapai akurasi 0,5526, sedangkan boosting dengan penanganan kategorik native menghindari One-Hot pada kolom `ward_id` (~945 nilai) dan naik ke 0,5975. Tuning memberi tambahan kecil (+0,5 poin) dibanding parameter awal.
+Hasil eksplorasi menunjukkan bahwa dataset tidak memiliki nilai kosong (*missing value*) dan tidak ditemukan duplikasi pada variabel identitas bangunan (`building_id`). Distribusi target menunjukkan adanya ketidakseimbangan kelas (*class imbalance*), dengan Grade 5 sebagai kelas dominan sekitar 36%, sedangkan Grade 1 memiliki proporsi sekitar 10%.
 
-**Confusion matrix dan kelas.** Kelas ekstrem (Grade 1 dan Grade 5) paling mudah diprediksi (F1 0,69 dan 0,74). Kelas menengah (Grade 2 dan 3, F1 0,40 dan 0,44) paling sulit karena tingkat kerusakan berurutan dan batas antar-grade bersifat subjektif (penilaian surveyor), sehingga sebagian besar kesalahan jatuh ke grade bersebelahan. Lihat `reports/figures/confusion_matrix.png`.
+Pada fitur numerik, variabel `age_building` memiliki nilai ekstrem hingga 999 tahun. Untuk mengurangi pengaruh pencilan terhadap proses pembelajaran model, dilakukan proses *clipping* dengan membatasi nilai maksimum umur bangunan menjadi 100 tahun.
 
-**Catatan dan keterbatasan.**
-- Fitur dari potongan `building_id` (`bid_seq`, `bid_prefix`, `bid_mid`) ikut dipakai karena menambah sekitar 1 poin akurasi pada eksperimen. Ini fitur dari ID, bukan sifat fisik bangunan, kemungkinan menangkap urutan/area survei. Kontribusinya (sekitar 8% gain) perlu diinterpretasi hati-hati.
-- Jumlah pohon dipilih memakai data holdout yang sama dengan pelaporan, sehingga skor holdout sedikit optimis.
-- Tuning terbatas (6 kombinasi, subsampel 100 ribu) karena keterbatasan komputasi; skor dapat naik dengan pencarian lebih luas, `learning_rate` lebih kecil, atau ensembling.
-- Format submission: kolom `damage_grade` ditulis sebagai angka 1-5, karena evaluator Kaggle menolak teks "Grade 3" (error "input string 'Grade' was not in a correct format"), walaupun `sample_submission.csv` memakai teks. Gunakan `--as-text` pada `scripts.predict` jika perlu format teks.
-- Metrik resmi kompetisi diasumsikan accuracy/micro-F1; macro-F1 dilaporkan sebagai pembanding karena kelas tidak seimbang.
+Selain itu, fitur `superstructure` diperlakukan sebagai satu variabel kategorikal dengan 11 kategori berdasarkan struktur data aktual pada dataset. Pendekatan ini berbeda dengan representasi *boolean flag* pada `metadata.csv`, sehingga preprocessing disesuaikan dengan karakteristik data yang tersedia.
+
+---
+
+### Faktor Dominan terhadap Prediksi Kerusakan
+
+Hasil analisis menunjukkan bahwa faktor lokasi merupakan variabel yang paling berpengaruh terhadap prediksi tingkat kerusakan bangunan. Perbedaan kondisi wilayah menyebabkan proporsi tingkat kerusakan yang berbeda antar area, misalnya persentase Grade 5 berkisar sekitar 9% pada district 31 hingga sekitar 81% pada district 23.
+
+Berdasarkan *feature importance* menggunakan metode gain, fitur `ward_id` memberikan kontribusi terbesar sebesar 37,3%, diikuti oleh `vdcmun_id` sebesar 21,6%, dan `superstructure` sebesar 11,3%. Sementara itu, fitur karakteristik fisik bangunan seperti luas, tinggi, volume, dan umur bangunan memberikan kontribusi yang relatif lebih kecil, yaitu sekitar 2-4%.
+
+Hasil tersebut menunjukkan bahwa tingkat kerusakan bangunan sangat dipengaruhi oleh kondisi wilayah dan faktor lokal, selain karakteristik material bangunan. Oleh karena itu, fitur lokasi dipertahankan sebagai variabel kategorikal agar model dapat mempelajari pola antarwilayah secara lebih optimal.
+
+Eksperimen tambahan menunjukkan bahwa penggunaan fitur lokasi memberikan peningkatan performa model. Ketika fitur lokasi tidak digunakan, akurasi mengalami penurunan hingga sekitar 0,459. Selain itu, perlakuan fitur lokasi sebagai kategori menghasilkan performa lebih baik dibandingkan menganggapnya sebagai nilai numerik berurutan.
+
+---
+
+### Alasan Pemilihan LightGBM
+
+LightGBM dipilih sebagai model utama karena mampu menangani dataset berukuran besar dengan kombinasi fitur numerik dan kategorikal serta mampu menangkap hubungan kompleks antarvariabel.
+
+Sebagai model pembanding awal, Decision Tree menghasilkan akurasi sebesar 0,5526. Namun, model pohon tunggal memiliki keterbatasan dalam mempelajari interaksi kompleks antara ratusan kategori lokasi dan jenis material bangunan.
+
+Penggunaan metode *gradient boosting* pada LightGBM memungkinkan model membangun kombinasi beberapa pohon keputusan secara bertahap sehingga menghasilkan prediksi yang lebih baik. Selain itu, LightGBM mampu mengatasi fitur kategorikal dengan jumlah kategori tinggi seperti `ward_id` yang memiliki sekitar 945 kategori tanpa harus melakukan One-Hot Encoding.
+
+Hasil tuning parameter meningkatkan performa model menjadi akurasi 0,5975. Peningkatan tersebut menunjukkan bahwa konfigurasi parameter yang disesuaikan mampu memberikan performa lebih baik dibandingkan model awal.
+
+---
+
+### Analisis Performa Berdasarkan Kelas
+
+Berdasarkan hasil evaluasi model, performa prediksi berbeda pada setiap kategori tingkat kerusakan.
+
+Kelas dengan tingkat kerusakan ekstrem, yaitu Grade 1 dan Grade 5, memiliki performa terbaik dengan nilai F1-score masing-masing sebesar 0,69 dan 0,74. Hal ini menunjukkan bahwa model lebih mudah mengenali bangunan dengan kondisi kerusakan yang sangat rendah maupun sangat tinggi.
+
+Sebaliknya, Grade 2 dan Grade 3 menjadi kelas yang paling sulit diprediksi dengan nilai F1-score masing-masing sebesar 0,40 dan 0,44. Kesalahan klasifikasi sebagian besar terjadi antar kelas yang berdekatan karena tingkat kerusakan bangunan memiliki karakteristik bertahap dan batas antar kategori dapat memiliki kemiripan berdasarkan hasil penilaian surveyor.
+
+Evaluasi detail performa model tersedia pada notebook:
+
+`notebooks/02_modeling.ipynb`
+
+
+---
+
+### Catatan dan Keterbatasan Model
+
+Meskipun LightGBM memberikan performa terbaik pada eksperimen ini, terdapat beberapa keterbatasan yang perlu diperhatikan:
+
+- Fitur turunan dari `building_id`, yaitu `bid_seq`, `bid_prefix`, dan `bid_mid`, digunakan karena memberikan peningkatan performa sekitar 1 poin akurasi pada eksperimen. Namun, fitur tersebut bukan merupakan karakteristik fisik bangunan secara langsung sehingga kontribusinya perlu diinterpretasikan secara hati-hati karena kemungkinan menangkap pola urutan data atau area survei.
+
+- Pemilihan jumlah pohon dilakukan menggunakan data *holdout* yang sama dengan evaluasi akhir, sehingga nilai performa yang diperoleh dapat sedikit lebih optimis dibandingkan kemampuan generalisasi sebenarnya.
+
+- Proses tuning masih terbatas pada 6 kombinasi parameter menggunakan subsampel 100 ribu data karena mempertimbangkan keterbatasan komputasi. Performa model masih berpotensi ditingkatkan melalui pencarian parameter yang lebih luas, penggunaan *learning rate* yang lebih kecil, atau pendekatan *ensemble learning*.
+
+- Format submission menggunakan nilai numerik 1-5 pada kolom `damage_grade`. Hal ini dilakukan karena evaluator Kaggle tidak menerima format teks seperti "Grade 3", meskipun format tersebut terdapat pada `sample_submission.csv`.
+
+- Metrik utama kompetisi diasumsikan menggunakan accuracy atau micro-F1, sedangkan Macro-F1 digunakan sebagai metrik tambahan untuk memberikan gambaran performa model pada kondisi kelas yang tidak seimbang.
