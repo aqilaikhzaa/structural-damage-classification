@@ -3,7 +3,7 @@
 Klasifikasi multi-kelas tingkat kerusakan bangunan pasca gempa (`damage_grade`: Grade 1-5) dari fitur struktural dan lokasi bangunan.
 Kompetisi: <https://www.kaggle.com/competitions/structural-damage-classification>
 
-**Model akhir:** LightGBM (gradient boosting, bukan neural network) di dalam `Pipeline` + `ColumnTransformer`.
+**Model akhir:** LightGBM berbasis gradient boosting yang diintegrasikan dalam `Pipeline` dengan `ColumnTransformer`.
 Akurasi holdout 20%: **0,5975** | Macro-F1: **0,5597**.
 
 ## Struktur Repository
@@ -145,7 +145,5 @@ Meskipun LightGBM memberikan performa terbaik pada eksperimen ini, terdapat bebe
 - Pemilihan jumlah pohon dilakukan menggunakan data *holdout* yang sama dengan evaluasi akhir, sehingga nilai performa yang diperoleh dapat sedikit lebih optimis dibandingkan kemampuan generalisasi sebenarnya.
 
 - Proses tuning masih terbatas pada 6 kombinasi parameter menggunakan subsampel 100 ribu data karena mempertimbangkan keterbatasan komputasi. Performa model masih berpotensi ditingkatkan melalui pencarian parameter yang lebih luas, penggunaan *learning rate* yang lebih kecil, atau pendekatan *ensemble learning*.
-
-- Format submission menggunakan nilai numerik 1-5 pada kolom `damage_grade`. Hal ini dilakukan karena evaluator Kaggle tidak menerima format teks seperti "Grade 3", meskipun format tersebut terdapat pada `sample_submission.csv`.
 
 - Metrik utama kompetisi diasumsikan menggunakan accuracy atau micro-F1, sedangkan Macro-F1 digunakan sebagai metrik tambahan untuk memberikan gambaran performa model pada kondisi kelas yang tidak seimbang.
